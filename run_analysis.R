@@ -8,14 +8,28 @@
 ###
 
 
-###----------------###
-### Pre-Processing ###
-###----------------###
+###------------------------###
+### STEP 0: Pre-Processing ###
+###------------------------###
 # 1) Load required libraries
 # 2) Load data into environment
 library(readr)
 library(tidyr)
 library(reshape2)
+library(dplyr)
+
+url <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+fileName <- "UCI HAR Dataset.zip"
+folderName <- "UCI HAR Dataset"
+filePath <- paste(folderName,"/",fileName)
+
+if (!file.exists(filePath)) {
+  download.file(url, fileName, mode = "wb")
+}
+
+if (!file.exists(folderName)) {
+  unzip(fileName)
+} 
 
 
 activityLabels <- read.table("UCI HAR Dataset/activity_labels.txt", stringsAsFactors = FALSE)
@@ -37,7 +51,7 @@ x_test <- read.table("UCI HAR Dataset/test/X_test.txt")
 y_test <- read.table("UCI HAR Dataset/test/y_test.txt")
 
 ###------------------------###
-### STEP 1: merge the data ###
+### STEP 1: Merge the data ###
 ###------------------------###
 
 
@@ -81,6 +95,11 @@ data_subset_cols <- colnames(data_subset)
 
 data_subset_cols <- gsub('[()]', '', data_subset_cols)
 data_subset_cols <- gsub('-', '_', data_subset_cols)
+data_subset_cols <- gsub("^f", "FreqDomain", data_subset_cols) 
+data_subset_cols <- gsub("^t", "TimeDomain", data_subset_cols)
+data_subset_cols <- gsub("Acc", "Accelerometer", data_subset_cols)
+# data_subset_cols <- gsub("mean", "Mean", data_subset_cols) # mean and std are descriptive already
+# data_subset_cols <- gsub("std", "StandardDeviation", data_subset_cols)
 
 colnames(data_subset) <- data_subset_cols
 
@@ -89,8 +108,14 @@ colnames(data_subset) <- data_subset_cols
 ### STEP 5: Create tidy dataset with averages ###
 ###-------------------------------------------###
 
-data_averages <- melt(data_subset, id = c("SubjectId", "ActivityId"))
+# data_averages <- melt(data_subset, id = c("SubjectId", "ActivityId"))
+data_averages <- data_subset %>% 
+                  group_by(SubjectId,ActivityLabel) %>%
+                  summarise_all(funs(mean))
 
+# output tidy data
+write.table(data_averages, "TidyData.txt", row.names = FALSE, 
+            quote = FALSE)
 
 ###---------------###
 ### END OF SCRIPT ###
